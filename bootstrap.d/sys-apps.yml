@@ -534,7 +534,7 @@ packages:
       version: '4.14.0'
       tools_required:
         - cross-toolchain
-        - host-gettext
+        - cross-gettext
       regenerate:
         - args: ['autoreconf', '-v', '-f', '--install']
     tools_required:
@@ -746,3 +746,158 @@ packages:
       - args: ["make", "install"]
         environ:
           DESTDIR: "@THIS_COLLECT_DIR@"
+
+  - name: systemd
+    architecture: '@OPTION:arch@'
+    metadata:
+      summary: System and service manager for Linux and Managarm
+      description: systemd is a suite of basic building blocks for a Linux system. It provides a system and service manager that runs as PID 1 and starts the rest of the system.
+      spdx: 'GPL-2.0-only'
+      website: 'https://systemd.io'
+      maintainer: "no92 <leo@managarm.org> && Dennis Bonke <dennis@managarm.org>"
+      categories: ['sys-apps']
+      replaces: ['eudev', 'systemd-utils']
+    source:
+      subdir: 'ports'
+      git: 'https://github.com/systemd/systemd.git'
+      tag: 'v256.8'
+      version: '256.8'
+    tools_required:
+      - cross-toolchain
+      - virtual: pkgconfig-for-target
+        triple: "@OPTION:arch-triple@"
+    pkgs_required:
+      - libcap
+      - libintl
+      - libxcrypt
+      - shadow
+      - openssl
+      - util-linux
+      - mlibc
+      - pam
+    revision: 12
+    configure:
+      - args:
+        - 'meson'
+        - 'setup'
+        - '--native-file'
+        - '@SOURCE_ROOT@/scripts/meson.native-file'
+        - '--cross-file'
+        - '@SOURCE_ROOT@/scripts/meson-@OPTION:arch-triple@.cross-file'
+        - '--prefix=/usr'
+        - '--buildtype=debugoptimized'
+        - '-Dadm-group=false'
+        - '-Danalyze=false'
+        - '-Dapparmor=disabled'
+        - '-Daudit=disabled'
+        - '-Dbacklight=false'
+        - '-Dbootloader=disabled'
+        - '-Dbinfmt=false'
+        - '-Dbpf-framework=disabled'
+        - '-Dbzip2=disabled'
+        - '-Dcoredump=false'
+        - '-Ddbus=disabled'
+        - '-Defi=false'
+        - '-Delfutils=disabled'
+        - '-Denvironment-d=false'
+        - '-Dfdisk=disabled'
+        - '-Dgcrypt=disabled'
+        - '-Dglib=disabled'
+        - '-Dgshadow=false'
+        - '-Dgnutls=disabled'
+        - '-Dhibernate=false'
+        - '-Dhostnamed=false'
+        - '-Didn=false'
+        - '-Dima=false'
+        - '-Dinitrd=false'
+        - '-Dfirstboot=false'
+        - '-Dldconfig=false'
+        - '-Dlibcryptsetup=disabled'
+        - '-Dlibcurl=disabled'
+        - '-Dlibfido2=disabled'
+        - '-Dlibidn=disabled'
+        - '-Dlibidn2=disabled'
+        - '-Dlibiptc=disabled'
+        - '-Dlocaled=false'
+        - '-Dlogind=true'
+        - '-Dlz4=disabled'
+        - '-Dmachined=false'
+        - '-Dmicrohttpd=disabled'
+        - '-Dnetworkd=false'
+        - '-Dnscd=false'
+        - '-Dnss-myhostname=false'
+        - '-Dnss-resolve=disabled'
+        - '-Dnss-systemd=false'
+        - '-Doomd=false'
+        - '-Dopenssl=disabled'
+        - '-Dp11kit=disabled'
+        - '-Dpam=enabled'
+        - '-Dpcre2=disabled'
+        - '-Dpolkit=disabled'
+        - '-Dportabled=false'
+        - '-Dpstore=false'
+        - '-Dpwquality=disabled'
+        - '-Drandomseed=false'
+        - '-Dresolve=false'
+        - '-Drfkill=false'
+        - '-Dseccomp=disabled'
+        - '-Dsmack=false'
+        - '-Dsysext=false'
+        - '-Dtimedated=false'
+        - '-Dtimesyncd=false'
+        - '-Dtpm=false'
+        - '-Dqrencode=disabled'
+        - '-Dquotacheck=false'
+        - '-Duserdb=false'
+        - '-Dutmp=true'
+        - '-Dvconsole=false'
+        - '-Dwheel-group=false'
+        - '-Dxdg-autostart=false'
+        - '-Dxkbcommon=disabled'
+        - '-Dxz=disabled'
+        - '-Dzlib=disabled'
+        - '-Dzstd=disabled'
+        - '-Dtests=true'
+        - '-Dinstall-tests=true'
+        - '@THIS_SOURCE_DIR@'
+        environ:
+          PKG_CONFIG_PATH: "@SYSROOT_DIR@/usr/lib/pkgconfig:@SYSROOT_DIR@/usr/lib64/pkgconfig"
+    build:
+      - args: ['ninja']
+      - args: ['ninja', 'install']
+        environ:
+          DESTDIR: '@THIS_COLLECT_DIR@'
+        quiet: true
+      # These don't work on Managarm, remove them so we don't get a degraded system
+      - args: ['rm', '@THIS_COLLECT_DIR@/usr/lib/systemd/system/systemd-ask-password-console.path']
+      - args: ['rm', '@THIS_COLLECT_DIR@/usr/lib/systemd/system/sysinit.target.wants/systemd-ask-password-console.path']
+      - args: ['rm', '@THIS_COLLECT_DIR@/usr/lib/systemd/system/systemd-ask-password-console.service']
+      # Touch up empty directories
+      - args: ['touch',
+          '@THIS_COLLECT_DIR@/usr/lib/systemd/system/runlevel1.target.wants/.keep',
+          '@THIS_COLLECT_DIR@/usr/lib/systemd/system/runlevel2.target.wants/.keep',
+          '@THIS_COLLECT_DIR@/usr/lib/systemd/system/runlevel3.target.wants/.keep',
+          '@THIS_COLLECT_DIR@/usr/lib/systemd/system/runlevel4.target.wants/.keep',
+          '@THIS_COLLECT_DIR@/usr/lib/systemd/system/runlevel5.target.wants/.keep',
+          '@THIS_COLLECT_DIR@/usr/lib/systemd/system/rescue.target.wants/.keep',
+          '@THIS_COLLECT_DIR@/usr/lib/systemd/system/graphical.target.wants/.keep',
+          '@THIS_COLLECT_DIR@/usr/lib/systemd/user-generators/.keep',
+          '@THIS_COLLECT_DIR@/usr/lib/systemd/system-shutdown/.keep',
+          '@THIS_COLLECT_DIR@/usr/lib/systemd/system-sleep/.keep',
+          '@THIS_COLLECT_DIR@/etc/credstore.encrypted/.keep',
+          '@THIS_COLLECT_DIR@/etc/kernel/install.d/.keep',
+          '@THIS_COLLECT_DIR@/etc/systemd/network/.keep',
+          '@THIS_COLLECT_DIR@/etc/systemd/system/.keep',
+          '@THIS_COLLECT_DIR@/usr/lib/credstore/.keep',
+          '@THIS_COLLECT_DIR@/etc/udev/rules.d/.keep',
+          '@THIS_COLLECT_DIR@/etc/systemd/user/.keep',
+          '@THIS_COLLECT_DIR@/var/log/journal/.keep',
+          '@THIS_COLLECT_DIR@/var/lib/systemd/.keep',
+          '@THIS_COLLECT_DIR@/etc/tmpfiles.d/.keep',
+          '@THIS_COLLECT_DIR@/etc/credstore/.keep',
+          '@THIS_COLLECT_DIR@/etc/sysctl.d/.keep',
+          '@THIS_COLLECT_DIR@/etc/kernel/.keep'
+        ]
+      - args: ['ln', '-sr', '@THIS_COLLECT_DIR@/usr/lib', '@THIS_COLLECT_DIR@/lib']
+      - args: ['systemd-hwdb', '--usr', '-r', '@THIS_COLLECT_DIR@', 'update']
+      - args: ['rm', '@THIS_COLLECT_DIR@/lib']

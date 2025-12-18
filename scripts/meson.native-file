@@ -1,2 +1,2 @@
 [binaries]
-pkgconfig = 'pkg-config'
+pkg-config = 'pkg-config'

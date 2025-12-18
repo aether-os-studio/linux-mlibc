@@ -305,6 +305,7 @@ packages:
           mkdir -pv @THIS_COLLECT_DIR@/usr/{,local/}{bin,include,lib,sbin,src}
           ln -sfv usr/bin @THIS_COLLECT_DIR@/bin
           ln -sfv usr/lib @THIS_COLLECT_DIR@/lib
+          ln -sfv usr/lib64 @THIS_COLLECT_DIR@/lib64
           ln -sfv usr/sbin @THIS_COLLECT_DIR@/sbin
           mkdir -pv @THIS_COLLECT_DIR@/{boot,home,mnt,opt,srv}
           mkdir -pv @THIS_COLLECT_DIR@/etc/{opt,sysconfig}
