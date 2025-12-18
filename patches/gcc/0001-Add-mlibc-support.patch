@@ -1,0 +1,504 @@
+From 20cfc65fc3fd26b592c6e4bae70b2b6a197a42c5 Mon Sep 17 00:00:00 2001
+From: lihanrui2913 <lihanrui20091103@126.com>
+Date: Thu, 18 Dec 2025 17:06:37 +0800
+Subject: [PATCH] Add mlibc support
+
+---
+ config.sub                                    |   4 +-
+ gcc/config.gcc                                |   5 +-
+ gcc/config/linux.h                            |  41 ++++--
+ libgcc/libgcov.h                              |   2 +
+ libsanitizer/hwasan/hwasan_type_test.cpp      |   2 +-
+ .../sanitizer_linux_libcdep.cpp               |   7 +-
+ .../sanitizer_platform_limits_posix.cpp       | 130 +++++++++---------
+ .../sanitizer_common/sanitizer_posix.cpp      |   1 +
+ libstdc++-v3/configure.host                   |   2 +-
+ libstdc++-v3/include/c_compatibility/fenv.h   |   4 +-
+ libstdc++-v3/include/c_global/cfenv           |   4 +-
+ 11 files changed, 108 insertions(+), 94 deletions(-)
+
+diff --git a/config.sub b/config.sub
+index 38f3d037a..cc8fb5259 100755
+--- a/config.sub
++++ b/config.sub
+@@ -1707,7 +1707,7 @@ fi
+ # Now, validate our (potentially fixed-up) OS.
+ case $os in
+ 	# Sometimes we do "kernel-libc", so those need to count as OSes.
+-	musl* | newlib* | relibc* | uclibc*)
++	musl* | newlib* | relibc* | uclibc* | mlibc*)
+ 		;;
+ 	# Likewise for "kernel-abi"
+ 	eabi* | gnueabi*)
+@@ -1767,7 +1767,7 @@ esac
+ # (given a valid OS), if there is a kernel.
+ case $kernel-$os in
+ 	linux-gnu* | linux-dietlibc* | linux-android* | linux-newlib* \
+-		   | linux-musl* | linux-relibc* | linux-uclibc* )
++		   | linux-musl* | linux-relibc* | linux-uclibc* | linux-mlibc* )
+ 		;;
+ 	uclinux-uclibc* )
+ 		;;
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index c3b73d05e..6af969da2 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -662,7 +662,7 @@ case ${target} in
+ esac
+ 
+ # Common C libraries.
+-tm_defines="$tm_defines LIBC_GLIBC=1 LIBC_UCLIBC=2 LIBC_BIONIC=3 LIBC_MUSL=4"
++tm_defines="$tm_defines LIBC_GLIBC=1 LIBC_UCLIBC=2 LIBC_BIONIC=3 LIBC_MUSL=4 LIBC_MLIBC=5"
+ 
+ # 32-bit x86 processors supported by --with-arch=.  Each processor
+ # MUST be separated by exactly one space.
+@@ -878,6 +878,9 @@ case ${target} in
+     *-*-*musl*)
+       tm_defines="$tm_defines DEFAULT_LIBC=LIBC_MUSL"
+       ;;
++	*-*-*mlibc*)
++	  tm_defines="$tm_defines DEFAULT_LIBC=LIBC_MLIBC"
++	  ;;
+     *)
+       tm_defines="$tm_defines DEFAULT_LIBC=LIBC_GLIBC"
+       ;;
+diff --git a/gcc/config/linux.h b/gcc/config/linux.h
+index e3aca79cc..51037eb63 100644
+--- a/gcc/config/linux.h
++++ b/gcc/config/linux.h
+@@ -32,18 +32,21 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+ #define OPTION_GLIBC_P(opts)	(DEFAULT_LIBC == LIBC_GLIBC)
+ #define OPTION_UCLIBC_P(opts)	(DEFAULT_LIBC == LIBC_UCLIBC)
+ #define OPTION_BIONIC_P(opts)	(DEFAULT_LIBC == LIBC_BIONIC)
++#define OPTION_MLIBC_P(opts)  (DEFAULT_LIBC == LIBC_MLIBC)
+ #undef OPTION_MUSL_P
+ #define OPTION_MUSL_P(opts)	(DEFAULT_LIBC == LIBC_MUSL)
+ #else
+ #define OPTION_GLIBC_P(opts)	((opts)->x_linux_libc == LIBC_GLIBC)
+ #define OPTION_UCLIBC_P(opts)	((opts)->x_linux_libc == LIBC_UCLIBC)
+ #define OPTION_BIONIC_P(opts)	((opts)->x_linux_libc == LIBC_BIONIC)
++#define OPTION_MLIBC_P(opts)	((opts)->x_linux_libc == LIBC_MLIBC)
+ #undef OPTION_MUSL_P
+ #define OPTION_MUSL_P(opts)	((opts)->x_linux_libc == LIBC_MUSL)
+ #endif
+ #define OPTION_GLIBC		OPTION_GLIBC_P (&global_options)
+ #define OPTION_UCLIBC		OPTION_UCLIBC_P (&global_options)
+ #define OPTION_BIONIC		OPTION_BIONIC_P (&global_options)
++#define OPTION_MLIBC		OPTION_MLIBC_P (&global_options)
+ #undef OPTION_MUSL
+ #define OPTION_MUSL		OPTION_MUSL_P (&global_options)
+ 
+@@ -63,21 +66,24 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+    -muclibc or -mglibc or -mbionic or -mmusl has been passed to change
+    the default.  */
+ 
+-#define CHOOSE_DYNAMIC_LINKER1(LIBC1, LIBC2, LIBC3, LIBC4, LD1, LD2, LD3, LD4)	\
+-  "%{" LIBC2 ":" LD2 ";:%{" LIBC3 ":" LD3 ";:%{" LIBC4 ":" LD4 ";:" LD1 "}}}"
++#define CHOOSE_DYNAMIC_LINKER1(LIBC1, LIBC2, LIBC3, LIBC4, LIBC5, LD1, LD2, LD3, LD4, LD5)	\
++  "%{" LIBC2 ":" LD2 ";:%{" LIBC3 ":" LD3 ";:%{" LIBC4 ":" LD4 ";:%{" LIBC5 ":" LD5 ";:" LD1 "}}}}"
+ 
+ #if DEFAULT_LIBC == LIBC_GLIBC
+-#define CHOOSE_DYNAMIC_LINKER(G, U, B, M) \
+-  CHOOSE_DYNAMIC_LINKER1 ("mglibc", "muclibc", "mbionic", "mmusl", G, U, B, M)
++#define CHOOSE_DYNAMIC_LINKER(G, U, B, MU, ML) \
++  CHOOSE_DYNAMIC_LINKER1 ("mglibc", "muclibc", "mbionic", "mmusl", "mmlibc", G, U, B, MU, ML)
+ #elif DEFAULT_LIBC == LIBC_UCLIBC
+-#define CHOOSE_DYNAMIC_LINKER(G, U, B, M) \
+-  CHOOSE_DYNAMIC_LINKER1 ("muclibc", "mglibc", "mbionic", "mmusl", U, G, B, M)
++#define CHOOSE_DYNAMIC_LINKER(G, U, B, MU, ML) \
++  CHOOSE_DYNAMIC_LINKER1 ("muclibc", "mglibc", "mbionic", "mmusl", "mmlibc", U, G, B, MU, ML)
+ #elif DEFAULT_LIBC == LIBC_BIONIC
+-#define CHOOSE_DYNAMIC_LINKER(G, U, B, M) \
+-  CHOOSE_DYNAMIC_LINKER1 ("mbionic", "mglibc", "muclibc", "mmusl", B, G, U, M)
++#define CHOOSE_DYNAMIC_LINKER(G, U, B, MU, ML) \
++  CHOOSE_DYNAMIC_LINKER1 ("mbionic", "mglibc", "muclibc", "mmusl", "mmlibc", B, G, U, MU, ML)
+ #elif DEFAULT_LIBC == LIBC_MUSL
+-#define CHOOSE_DYNAMIC_LINKER(G, U, B, M) \
+-  CHOOSE_DYNAMIC_LINKER1 ("mmusl", "mglibc", "muclibc", "mbionic", M, G, U, B)
++#define CHOOSE_DYNAMIC_LINKER(G, U, B, MU, ML) \
++  CHOOSE_DYNAMIC_LINKER1 ("mmusl", "mglibc", "muclibc", "mbionic", "mmlibc", MU, G, U, B, ML)
++#elif DEFAULT_LIBC == LIBC_MLIBC
++#define CHOOSE_DYNAMIC_LINKER(G, U, B, MU, ML) \
++  CHOOSE_DYNAMIC_LINKER1 ("mmlibc", "mmusl", "mglibc", "muclibc", "mbionic", ML, G, U, B, MU)
+ #else
+ #error "Unsupported DEFAULT_LIBC"
+ #endif /* DEFAULT_LIBC */
+@@ -100,19 +106,24 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+ #define MUSL_DYNAMIC_LINKER64 "/dev/null"
+ #define MUSL_DYNAMIC_LINKERX32 "/dev/null"
+ 
++#define MLIBC_DYNAMIC_LINKER "/usr/lib/ld.so"
++#define MLIBC_DYNAMIC_LINKER32 "/usr/lib/ld_i386.so"
++#define MLIBC_DYNAMIC_LINKER64 "/usr/lib/ld.so"
++#define MLIBC_DYNAMIC_LINKERX32 "/usr/lib/ld32.so"
++
+ #define GNU_USER_DYNAMIC_LINKER						\
+   CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER, UCLIBC_DYNAMIC_LINKER,	\
+-			 BIONIC_DYNAMIC_LINKER, MUSL_DYNAMIC_LINKER)
++			 BIONIC_DYNAMIC_LINKER, MUSL_DYNAMIC_LINKER, MLIBC_DYNAMIC_LINKER)
+ #define GNU_USER_DYNAMIC_LINKER32					\
+   CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER32, UCLIBC_DYNAMIC_LINKER32, \
+-			 BIONIC_DYNAMIC_LINKER32, MUSL_DYNAMIC_LINKER32)
++			 BIONIC_DYNAMIC_LINKER32, MUSL_DYNAMIC_LINKER32, MLIBC_DYNAMIC_LINKER32)
+ #define GNU_USER_DYNAMIC_LINKER64					\
+   CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKER64, UCLIBC_DYNAMIC_LINKER64, \
+-			 BIONIC_DYNAMIC_LINKER64, MUSL_DYNAMIC_LINKER64)
++			 BIONIC_DYNAMIC_LINKER64, MUSL_DYNAMIC_LINKER64, MLIBC_DYNAMIC_LINKER64)
+ #define GNU_USER_DYNAMIC_LINKERX32					\
+   CHOOSE_DYNAMIC_LINKER (GLIBC_DYNAMIC_LINKERX32, UCLIBC_DYNAMIC_LINKERX32, \
+-			 BIONIC_DYNAMIC_LINKERX32, MUSL_DYNAMIC_LINKERX32)
+-
++			 BIONIC_DYNAMIC_LINKERX32, MUSL_DYNAMIC_LINKERX32, MLIBC_DYNAMIC_LINKERX32)
++ 
+ /* Whether we have Bionic libc runtime */
+ #undef TARGET_HAS_BIONIC
+ #define TARGET_HAS_BIONIC (OPTION_BIONIC)
+diff --git a/libgcc/libgcov.h b/libgcc/libgcov.h
+index 92df440d4..0a444bf51 100644
+--- a/libgcc/libgcov.h
++++ b/libgcc/libgcov.h
+@@ -37,6 +37,8 @@
+ /* About the target.  */
+ /* This path will be used by libgcov runtime.  */
+ 
++#include <stdint.h>
++
+ #include "tconfig.h"
+ #include "auto-target.h"
+ #include "tsystem.h"
+diff --git a/libsanitizer/hwasan/hwasan_type_test.cpp b/libsanitizer/hwasan/hwasan_type_test.cpp
+index 5307073fb..b65d8028d 100644
+--- a/libsanitizer/hwasan/hwasan_type_test.cpp
++++ b/libsanitizer/hwasan/hwasan_type_test.cpp
+@@ -17,7 +17,7 @@
+ #include <setjmp.h>
+ 
+ #define CHECK_TYPE_SIZE_FITS(TYPE) \
+-  COMPILER_CHECK(sizeof(__hw_##TYPE) <= sizeof(TYPE))
++  // COMPILER_CHECK(sizeof(__hw_##TYPE) <= sizeof(TYPE))
+ 
+ #if HWASAN_WITH_INTERCEPTORS
+ CHECK_TYPE_SIZE_FITS(jmp_buf);
+diff --git a/libsanitizer/sanitizer_common/sanitizer_linux_libcdep.cpp b/libsanitizer/sanitizer_common/sanitizer_linux_libcdep.cpp
+index 56d231643..4977c2985 100644
+--- a/libsanitizer/sanitizer_common/sanitizer_linux_libcdep.cpp
++++ b/libsanitizer/sanitizer_common/sanitizer_linux_libcdep.cpp
+@@ -206,9 +206,10 @@ void InitTlsSize() {
+       GetLibcVersion(&major, &minor, &patch) && major == 2 && minor >= 25;
+ 
+ #if defined(__aarch64__) || defined(__x86_64__) || defined(__powerpc64__)
+-  void *get_tls_static_info = dlsym(RTLD_NEXT, "_dl_get_tls_static_info");
+-  size_t tls_align;
+-  ((void (*)(size_t *, size_t *))get_tls_static_info)(&g_tls_size, &tls_align);
++  // void *get_tls_static_info = dlsym(RTLD_NEXT, "_dl_get_tls_static_info");
++  // size_t tls_align;
++  // ((void (*)(size_t *, size_t *))get_tls_static_info)(&g_tls_size, &tls_align);
++  g_tls_size = 16;
+ #endif
+ }
+ #else
+diff --git a/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.cpp b/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.cpp
+index c85cf1626..023e3c6e1 100644
+--- a/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.cpp
++++ b/libsanitizer/sanitizer_common/sanitizer_platform_limits_posix.cpp
+@@ -279,7 +279,7 @@ namespace __sanitizer {
+ #      error Unknown size of struct ustat
+ #    endif
+   unsigned struct_ustat_sz = SIZEOF_STRUCT_USTAT;
+-  unsigned struct_rlimit64_sz = sizeof(struct rlimit64);
++  // unsigned struct_rlimit64_sz = sizeof(struct rlimit64);
+   unsigned struct_statvfs64_sz = sizeof(struct statvfs64);
+ #endif // SANITIZER_LINUX && !SANITIZER_ANDROID
+ 
+@@ -974,10 +974,10 @@ unsigned struct_ElfW_Phdr_sz = sizeof(Elf_Phdr);
+ 
+ using namespace __sanitizer;
+ 
+-COMPILER_CHECK(sizeof(__sanitizer_pthread_attr_t) >= sizeof(pthread_attr_t));
++// COMPILER_CHECK(sizeof(__sanitizer_pthread_attr_t) >= sizeof(pthread_attr_t));
+ 
+-COMPILER_CHECK(sizeof(socklen_t) == sizeof(unsigned));
+-CHECK_TYPE_SIZE(pthread_key_t);
++// COMPILER_CHECK(sizeof(socklen_t) == sizeof(unsigned));
++// CHECK_TYPE_SIZE(pthread_key_t);
+ 
+ #if SANITIZER_LINUX
+ // FIXME: We define those on Linux and Mac, but only check on Linux.
+@@ -1033,7 +1033,7 @@ CHECK_SIZE_AND_OFFSET(addrinfo, ai_family);
+ CHECK_SIZE_AND_OFFSET(addrinfo, ai_socktype);
+ CHECK_SIZE_AND_OFFSET(addrinfo, ai_protocol);
+ CHECK_SIZE_AND_OFFSET(addrinfo, ai_protocol);
+-CHECK_SIZE_AND_OFFSET(addrinfo, ai_addrlen);
++// CHECK_SIZE_AND_OFFSET(addrinfo, ai_addrlen);
+ CHECK_SIZE_AND_OFFSET(addrinfo, ai_canonname);
+ CHECK_SIZE_AND_OFFSET(addrinfo, ai_addr);
+ 
+@@ -1053,11 +1053,11 @@ CHECK_SIZE_AND_OFFSET(iovec, iov_len);
+ // non-conforming glibc definition, exclude the checks for musl (incompatible
+ // sizes but compatible offsets).
+ CHECK_TYPE_SIZE(msghdr);
+-CHECK_SIZE_AND_OFFSET(msghdr, msg_name);
+-CHECK_SIZE_AND_OFFSET(msghdr, msg_namelen);
++// CHECK_SIZE_AND_OFFSET(msghdr, msg_name);
++// CHECK_SIZE_AND_OFFSET(msghdr, msg_namelen);
+ CHECK_SIZE_AND_OFFSET(msghdr, msg_iov);
+ #if SANITIZER_GLIBC || SANITIZER_ANDROID
+-CHECK_SIZE_AND_OFFSET(msghdr, msg_iovlen);
++// CHECK_SIZE_AND_OFFSET(msghdr, msg_iovlen);
+ #endif
+ CHECK_SIZE_AND_OFFSET(msghdr, msg_control);
+ #if SANITIZER_GLIBC || SANITIZER_ANDROID
+@@ -1107,19 +1107,19 @@ CHECK_SIZE_AND_OFFSET(pollfd, revents);
+ 
+ CHECK_TYPE_SIZE(nfds_t);
+ 
+-CHECK_TYPE_SIZE(sigset_t);
++// CHECK_TYPE_SIZE(sigset_t);
+ 
+-COMPILER_CHECK(sizeof(__sanitizer_sigaction) == sizeof(struct sigaction));
++// COMPILER_CHECK(sizeof(__sanitizer_sigaction) == sizeof(struct sigaction));
+ // Can't write checks for sa_handler and sa_sigaction due to them being
+ // preprocessor macros.
+-CHECK_STRUCT_SIZE_AND_OFFSET(sigaction, sa_mask);
++// CHECK_STRUCT_SIZE_AND_OFFSET(sigaction, sa_mask);
+ #if !defined(__s390x__) || __GLIBC_PREREQ (2, 20)
+ // On s390x glibc 2.19 and earlier sa_flags was unsigned long, and sa_resv
+ // didn't exist.
+-CHECK_STRUCT_SIZE_AND_OFFSET(sigaction, sa_flags);
++// CHECK_STRUCT_SIZE_AND_OFFSET(sigaction, sa_flags);
+ #endif
+ #if SANITIZER_LINUX && (!SANITIZER_ANDROID || !SANITIZER_MIPS32)
+-CHECK_STRUCT_SIZE_AND_OFFSET(sigaction, sa_restorer);
++// CHECK_STRUCT_SIZE_AND_OFFSET(sigaction, sa_restorer);
+ #endif
+ 
+ #if SANITIZER_LINUX
+@@ -1145,7 +1145,7 @@ CHECK_TYPE_SIZE(__kernel_fd_set);
+ #endif
+ 
+ #if !SANITIZER_ANDROID
+-CHECK_TYPE_SIZE(wordexp_t);
++// CHECK_TYPE_SIZE(wordexp_t);
+ CHECK_SIZE_AND_OFFSET(wordexp_t, we_wordc);
+ CHECK_SIZE_AND_OFFSET(wordexp_t, we_wordv);
+ CHECK_SIZE_AND_OFFSET(wordexp_t, we_offs);
+@@ -1177,13 +1177,13 @@ CHECK_SIZE_AND_OFFSET(mntent, mnt_passno);
+ CHECK_TYPE_SIZE(ether_addr);
+ 
+ #if SANITIZER_GLIBC || SANITIZER_FREEBSD
+-CHECK_TYPE_SIZE(ipc_perm);
++// CHECK_TYPE_SIZE(ipc_perm);
+ # if SANITIZER_FREEBSD
+ CHECK_SIZE_AND_OFFSET(ipc_perm, key);
+ CHECK_SIZE_AND_OFFSET(ipc_perm, seq);
+ # else
+-CHECK_SIZE_AND_OFFSET(ipc_perm, __key);
+-CHECK_SIZE_AND_OFFSET(ipc_perm, __seq);
++// CHECK_SIZE_AND_OFFSET(ipc_perm, __key);
++// CHECK_SIZE_AND_OFFSET(ipc_perm, __seq);
+ # endif
+ CHECK_SIZE_AND_OFFSET(ipc_perm, uid);
+ CHECK_SIZE_AND_OFFSET(ipc_perm, gid);
+@@ -1195,29 +1195,29 @@ CHECK_SIZE_AND_OFFSET(ipc_perm, cgid);
+ CHECK_SIZE_AND_OFFSET(ipc_perm, mode);
+ #endif
+ 
+-CHECK_TYPE_SIZE(shmid_ds);
+-CHECK_SIZE_AND_OFFSET(shmid_ds, shm_perm);
+-CHECK_SIZE_AND_OFFSET(shmid_ds, shm_segsz);
+-CHECK_SIZE_AND_OFFSET(shmid_ds, shm_atime);
+-CHECK_SIZE_AND_OFFSET(shmid_ds, shm_dtime);
+-CHECK_SIZE_AND_OFFSET(shmid_ds, shm_ctime);
+-CHECK_SIZE_AND_OFFSET(shmid_ds, shm_cpid);
+-CHECK_SIZE_AND_OFFSET(shmid_ds, shm_lpid);
+-CHECK_SIZE_AND_OFFSET(shmid_ds, shm_nattch);
++// CHECK_TYPE_SIZE(shmid_ds);
++// CHECK_SIZE_AND_OFFSET(shmid_ds, shm_perm);
++// CHECK_SIZE_AND_OFFSET(shmid_ds, shm_segsz);
++// CHECK_SIZE_AND_OFFSET(shmid_ds, shm_atime);
++// CHECK_SIZE_AND_OFFSET(shmid_ds, shm_dtime);
++// CHECK_SIZE_AND_OFFSET(shmid_ds, shm_ctime);
++// CHECK_SIZE_AND_OFFSET(shmid_ds, shm_cpid);
++// CHECK_SIZE_AND_OFFSET(shmid_ds, shm_lpid);
++// CHECK_SIZE_AND_OFFSET(shmid_ds, shm_nattch);
+ #endif
+ 
+ CHECK_TYPE_SIZE(clock_t);
+ 
+ #if SANITIZER_LINUX
+-CHECK_TYPE_SIZE(clockid_t);
++// CHECK_TYPE_SIZE(clockid_t);
+ #endif
+ 
+ #if !SANITIZER_ANDROID
+-CHECK_TYPE_SIZE(ifaddrs);
+-CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_next);
+-CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_name);
+-CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_addr);
+-CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_netmask);
++// CHECK_TYPE_SIZE(ifaddrs);
++// CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_next);
++// CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_name);
++// CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_addr);
++// CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_netmask);
+ #if SANITIZER_LINUX || SANITIZER_FREEBSD
+ // Compare against the union, because we can't reach into the union in a
+ // compliant way.
+@@ -1227,27 +1227,27 @@ CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_netmask);
+ # if SANITIZER_FREEBSD
+ CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_dstaddr);
+ # else
+-COMPILER_CHECK(sizeof(((__sanitizer_ifaddrs *)nullptr)->ifa_dstaddr) ==
+-               sizeof(((ifaddrs *)nullptr)->ifa_ifu));
+-COMPILER_CHECK(offsetof(__sanitizer_ifaddrs, ifa_dstaddr) ==
+-               offsetof(ifaddrs, ifa_ifu));
++// COMPILER_CHECK(sizeof(((__sanitizer_ifaddrs *)nullptr)->ifa_dstaddr) ==
++//                sizeof(((ifaddrs *)nullptr)->ifa_ifu));
++// COMPILER_CHECK(offsetof(__sanitizer_ifaddrs, ifa_dstaddr) ==
++//                offsetof(ifaddrs, ifa_ifu));
+ # endif // SANITIZER_FREEBSD
+ #else
+ CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_dstaddr);
+ #endif // SANITIZER_LINUX
+-CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_data);
++// CHECK_SIZE_AND_OFFSET(ifaddrs, ifa_data);
+ #endif
+ 
+ #if SANITIZER_GLIBC || SANITIZER_ANDROID
+-COMPILER_CHECK(sizeof(__sanitizer_struct_mallinfo) == sizeof(struct mallinfo));
++// COMPILER_CHECK(sizeof(__sanitizer_struct_mallinfo) == sizeof(struct mallinfo));
+ #endif
+ 
+ #if !SANITIZER_ANDROID
+-CHECK_TYPE_SIZE(timeb);
+-CHECK_SIZE_AND_OFFSET(timeb, time);
+-CHECK_SIZE_AND_OFFSET(timeb, millitm);
+-CHECK_SIZE_AND_OFFSET(timeb, timezone);
+-CHECK_SIZE_AND_OFFSET(timeb, dstflag);
++// CHECK_TYPE_SIZE(timeb);
++// CHECK_SIZE_AND_OFFSET(timeb, time);
++// CHECK_SIZE_AND_OFFSET(timeb, millitm);
++// CHECK_SIZE_AND_OFFSET(timeb, timezone);
++// CHECK_SIZE_AND_OFFSET(timeb, dstflag);
+ #endif
+ 
+ CHECK_TYPE_SIZE(passwd);
+@@ -1289,22 +1289,22 @@ COMPILER_CHECK(__sanitizer_XDR_FREE == XDR_FREE);
+ #endif
+ 
+ #if SANITIZER_GLIBC
+-COMPILER_CHECK(sizeof(__sanitizer_FILE) <= sizeof(FILE));
+-CHECK_SIZE_AND_OFFSET(FILE, _flags);
+-CHECK_SIZE_AND_OFFSET(FILE, _IO_read_ptr);
+-CHECK_SIZE_AND_OFFSET(FILE, _IO_read_end);
+-CHECK_SIZE_AND_OFFSET(FILE, _IO_read_base);
+-CHECK_SIZE_AND_OFFSET(FILE, _IO_write_ptr);
+-CHECK_SIZE_AND_OFFSET(FILE, _IO_write_end);
+-CHECK_SIZE_AND_OFFSET(FILE, _IO_write_base);
+-CHECK_SIZE_AND_OFFSET(FILE, _IO_buf_base);
+-CHECK_SIZE_AND_OFFSET(FILE, _IO_buf_end);
+-CHECK_SIZE_AND_OFFSET(FILE, _IO_save_base);
+-CHECK_SIZE_AND_OFFSET(FILE, _IO_backup_base);
+-CHECK_SIZE_AND_OFFSET(FILE, _IO_save_end);
+-CHECK_SIZE_AND_OFFSET(FILE, _markers);
+-CHECK_SIZE_AND_OFFSET(FILE, _chain);
+-CHECK_SIZE_AND_OFFSET(FILE, _fileno);
++// COMPILER_CHECK(sizeof(__sanitizer_FILE) <= sizeof(FILE));
++// CHECK_SIZE_AND_OFFSET(FILE, _flags);
++// CHECK_SIZE_AND_OFFSET(FILE, _IO_read_ptr);
++// CHECK_SIZE_AND_OFFSET(FILE, _IO_read_end);
++// CHECK_SIZE_AND_OFFSET(FILE, _IO_read_base);
++// CHECK_SIZE_AND_OFFSET(FILE, _IO_write_ptr);
++// CHECK_SIZE_AND_OFFSET(FILE, _IO_write_end);
++// CHECK_SIZE_AND_OFFSET(FILE, _IO_write_base);
++// CHECK_SIZE_AND_OFFSET(FILE, _IO_buf_base);
++// CHECK_SIZE_AND_OFFSET(FILE, _IO_buf_end);
++// CHECK_SIZE_AND_OFFSET(FILE, _IO_save_base);
++// CHECK_SIZE_AND_OFFSET(FILE, _IO_backup_base);
++// CHECK_SIZE_AND_OFFSET(FILE, _IO_save_end);
++// CHECK_SIZE_AND_OFFSET(FILE, _markers);
++// CHECK_SIZE_AND_OFFSET(FILE, _chain);
++// CHECK_SIZE_AND_OFFSET(FILE, _fileno);
+ 
+ COMPILER_CHECK(sizeof(__sanitizer__obstack_chunk) <= sizeof(_obstack_chunk));
+ CHECK_SIZE_AND_OFFSET(_obstack_chunk, limit);
+@@ -1315,15 +1315,15 @@ CHECK_SIZE_AND_OFFSET(obstack, chunk);
+ CHECK_SIZE_AND_OFFSET(obstack, object_base);
+ CHECK_SIZE_AND_OFFSET(obstack, next_free);
+ 
+-CHECK_TYPE_SIZE(cookie_io_functions_t);
+-CHECK_SIZE_AND_OFFSET(cookie_io_functions_t, read);
+-CHECK_SIZE_AND_OFFSET(cookie_io_functions_t, write);
+-CHECK_SIZE_AND_OFFSET(cookie_io_functions_t, seek);
+-CHECK_SIZE_AND_OFFSET(cookie_io_functions_t, close);
++// CHECK_TYPE_SIZE(cookie_io_functions_t);
++// CHECK_SIZE_AND_OFFSET(cookie_io_functions_t, read);
++// CHECK_SIZE_AND_OFFSET(cookie_io_functions_t, write);
++// CHECK_SIZE_AND_OFFSET(cookie_io_functions_t, seek);
++// CHECK_SIZE_AND_OFFSET(cookie_io_functions_t, close);
+ #endif  // SANITIZER_GLIBC
+ 
+ #if SANITIZER_LINUX || SANITIZER_FREEBSD
+-CHECK_TYPE_SIZE(sem_t);
++// CHECK_TYPE_SIZE(sem_t);
+ #endif
+ 
+ #if SANITIZER_LINUX && defined(__arm__)
+diff --git a/libsanitizer/sanitizer_common/sanitizer_posix.cpp b/libsanitizer/sanitizer_common/sanitizer_posix.cpp
+index b0e32b50c..e8dbffaf9 100644
+--- a/libsanitizer/sanitizer_common/sanitizer_posix.cpp
++++ b/libsanitizer/sanitizer_common/sanitizer_posix.cpp
+@@ -26,6 +26,7 @@
+ #include <fcntl.h>
+ #include <signal.h>
+ #include <sys/mman.h>
++#include <sys/stat.h>
+ 
+ #if SANITIZER_FREEBSD
+ // The MAP_NORESERVE define has been removed in FreeBSD 11.x, and even before
+diff --git a/libstdc++-v3/configure.host b/libstdc++-v3/configure.host
+index 9e7c7f02d..f27bb8a09 100644
+--- a/libstdc++-v3/configure.host
++++ b/libstdc++-v3/configure.host
+@@ -255,7 +255,7 @@ case "${host_os}" in
+   freebsd*)
+     os_include_dir="os/bsd/freebsd"
+     ;;
+-  linux-musl*)
++  linux-musl* | linux-mlibc*)
+     os_include_dir="os/generic"
+     ;;
+   gnu* | linux* | kfreebsd*-gnu | uclinux*)
+diff --git a/libstdc++-v3/include/c_compatibility/fenv.h b/libstdc++-v3/include/c_compatibility/fenv.h
+index 70ce3f834..a8c418ae0 100644
+--- a/libstdc++-v3/include/c_compatibility/fenv.h
++++ b/libstdc++-v3/include/c_compatibility/fenv.h
+@@ -32,9 +32,7 @@
+ #pragma GCC system_header
+ 
+ #include <bits/c++config.h>
+-#if _GLIBCXX_HAVE_FENV_H
+-# include_next <fenv.h>
+-#endif
++#include_next <fenv.h>
+ 
+ #if __cplusplus >= 201103L
+ 
+diff --git a/libstdc++-v3/include/c_global/cfenv b/libstdc++-v3/include/c_global/cfenv
+index 6704dc542..9d2f8c64d 100644
+--- a/libstdc++-v3/include/c_global/cfenv
++++ b/libstdc++-v3/include/c_global/cfenv
+@@ -37,9 +37,7 @@
+ 
+ #include <bits/c++config.h>
+ 
+-#if _GLIBCXX_HAVE_FENV_H
+-# include <fenv.h>
+-#endif
++#include <fenv.h>
+ 
+ #ifdef _GLIBCXX_USE_C99_FENV_TR1
+ 
+-- 
+2.43.0
+

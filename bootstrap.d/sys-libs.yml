@@ -125,8 +125,8 @@ packages:
     source:
       subdir: 'ports'
       git: 'https://github.com/besser82/libxcrypt.git'
-      tag: 'v4.4.26'
-      version: '4.4.26'
+      tag: 'v4.4.38'
+      version: '4.4.38'
       tools_required:
         - tool: cross-gcc
           stage_dependencies: ["compiler"]

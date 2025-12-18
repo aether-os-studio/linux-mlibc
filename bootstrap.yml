@@ -99,8 +99,8 @@ sources:
   - name: gcc
     subdir: ports
     git: "https://github.com/gcc-mirror/gcc.git"
-    tag: "releases/gcc-11.2.0"
-    version: "11.2.0"
+    tag: "releases/gcc-13.3.0"
+    version: "13.3.0"
 
   - name: linux
     subdir: ports
@@ -110,11 +110,34 @@ sources:
     extract_path: 'linux-6.2.9'
     version: '6.2.9'
 
+  - name: freestnd-c-hdrs
+    rolling_version: true
+    version: '0.0pl@ROLLING_ID@'
+    subdir: 'ports'
+    git: 'https://github.com/osdev0/freestnd-c-hdrs.git'
+    branch: 'trunk'
+
+  - name: freestnd-cxx-hdrs
+    rolling_version: true
+    version: '0.0pl@ROLLING_ID@'
+    subdir: 'ports'
+    git: 'https://github.com/osdev0/freestnd-cxx-hdrs.git'
+    branch: 'trunk'
+
+  - name: libsmarter
+    subdir: 'ports'
+    git: 'https://github.com/managarm/libsmarter.git'
+    branch: 'master'
+    rolling_version: true
+    version: '0.0pl@ROLLING_ID@'
+
   - name: mlibc
     subdir: ports
-    git: "https://github.com/no92/mlibc.git"
-    branch: "lfs"
-    version: "2.2.0"
+    git: 'https://github.com/managarm/mlibc.git'
+    branch: 'master'
+    commit: '8f5b932dcc36de2bf85b3e61a57052482205d242'
+    rolling_version: true
+    version: '0.0pl@ROLLING_ID@'
 
 declare_options:
   - name: arch
@@ -302,7 +325,6 @@ packages:
           cp @THIS_SOURCE_DIR@/extrapaths.sh @THIS_COLLECT_DIR@/etc/profile.d
           cp @THIS_SOURCE_DIR@/readline.sh @THIS_COLLECT_DIR@/etc/profile.d
           cp @THIS_SOURCE_DIR@/umask.sh @THIS_COLLECT_DIR@/etc/profile.d
-          cp @THIS_SOURCE_DIR@/.bashrc @THIS_COLLECT_DIR@/root
           cp @THIS_SOURCE_DIR@/post-boot-fixup.sh @THIS_COLLECT_DIR@/root
           install --directory --mode=0755 @THIS_COLLECT_DIR@/etc/bash_completion.d
           touch @THIS_COLLECT_DIR@/{boot,home,mnt,opt,root,srv,tmp}/.keep
@@ -333,26 +355,97 @@ packages:
       - args: ['mkdir', '-pv', '@THIS_COLLECT_DIR@/usr']
       - args: ['cp', '-rv', 'usr/include', '@THIS_COLLECT_DIR@/usr']
 
-  - name: kernel
-    from_source: linux
+  - name: freestnd-c-hdrs
+    architecture: '@OPTION:arch@'
+    from_source: freestnd-c-hdrs
+    implict_package: true
+    revision: 3
     configure:
-      - args: ['rsync', '-ar', '@THIS_SOURCE_DIR@/', '@THIS_BUILD_DIR@/']
-      - args: ['make', 'mrproper']
-      - args: ['cp', '@SOURCE_ROOT@/scripts/kernel.config', '@THIS_BUILD_DIR@/.config']
-      - args: ['make', 'olddefconfig']
+      - args: ['cp', '-rpv', '@THIS_SOURCE_DIR@/.', './']
     build:
-      - args: ['make', '-j@PARALLELISM@']
-      - args: ['make', 'modules_install']
+      - args: ['make', 'install', 'PREFIX=/usr']
         environ:
-          INSTALL_MOD_PATH: '@THIS_COLLECT_DIR@/usr/'
-      - args: ['mkdir', '-pv', '@THIS_COLLECT_DIR@/boot']
-      - args: ['cp', '-v', '@THIS_BUILD_DIR@/arch/x86/boot/bzImage', '@THIS_COLLECT_DIR@/boot/vmlinuz-linux']
+          DESTDIR: '@THIS_COLLECT_DIR@'
+
+  - name: freestnd-cxx-hdrs
+    architecture: '@OPTION:arch@'
+    from_source: freestnd-cxx-hdrs
+    implict_package: true
+    pkgs_required:
+      - freestnd-c-hdrs
+    revision: 3
+    configure:
+      - args: ['cp', '-rpv', '@THIS_SOURCE_DIR@/.', './']
+    build:
+      - args: ['make', 'install', 'PREFIX=/usr']
+        environ:
+          DESTDIR: '@THIS_COLLECT_DIR@'
+
+  - name: libsmarter
+    architecture: '@OPTION:arch@'
+    implict_package: true
+    from_source: libsmarter
+    revision: 16
+    configure:
+      - args: ['mkdir', '-p', '@THIS_COLLECT_DIR@/usr/include']
+      - args:
+        - 'meson'
+        - 'setup'
+        - '--prefix=/usr'
+        # install to separate libdir and a separate includedir (instdead of /usr/include)
+        - '--includedir=share/libsmarter/include'
+        - '--libdir=lib/@OPTION:arch-triple@/libsmarter'
+        - '@THIS_SOURCE_DIR@'
+    build:
+      - args: ['ninja', 'install']
+        environ:
+          DESTDIR: '@THIS_COLLECT_DIR@'
+      # symlink the pkgconfig file to the standard location
+      - args: ['mkdir', '-p', '@THIS_COLLECT_DIR@/usr/lib/pkgconfig']
+      - args: ['ln', '-srf', '@THIS_COLLECT_DIR@/usr/lib/@OPTION:arch-triple@/libsmarter/pkgconfig/libsmarter.pc',
+              '@THIS_COLLECT_DIR@/usr/lib/pkgconfig/libsmarter.pc']
+
+  - name: frigg
+    metadata:
+      summary: Lightweight C++ utilities and algorithms for system programming
+      description: This package provides utility header files for freestanding C++ applications.
+      spdx: 'MIT'
+      maintainer: "Alexander van der Grinten <avdgrinten@managarm.org>"
+    architecture: '@OPTION:arch@'
+    implict_package: true
+    source:
+      rolling_version: true
+      version: '0.0pl@ROLLING_ID@'
+      subdir: 'ports'
+      git: 'https://github.com/managarm/frigg.git'
+      branch: 'master'
+    revision: 9
+    configure:
+      - args:
+        - 'meson'
+        - 'setup'
+        - '--prefix=/usr'
+        - '--libdir=lib'
+        # Install to /usr/share to avoid conflicts with standard C++ headers.
+        - '--includedir=share/frigg/include'
+        - '--buildtype=debugoptimized'
+        # We don't have a test stage in frigg
+        - '-Dbuild_tests=disabled'
+        - '@THIS_SOURCE_DIR@'
+    build:
+      - args: ['ninja']
+      - args: ['ninja', 'install']
+        environ:
+          DESTDIR: '@THIS_COLLECT_DIR@'
+        quiet: true
 
   - name: mlibc-headers
     from_source: mlibc
     implict_package: true
     pkgs_required:
       - kernel-headers
+      - freestnd-c-hdrs
+      - freestnd-cxx-hdrs
     configure:
       - args:
           - "meson"
@@ -360,10 +453,9 @@ packages:
           - "@SOURCE_ROOT@/scripts/meson-x86_64-linux-mlibc.cross-file"
           - "--prefix=/usr"
           - "-Dheaders_only=true"
-          - "-Ddisable_iconv_option=true"
-          - "-Ddisable_intl_option=true"
-          - "-Ddisable_crypt_option=true"
-          - "-Dbuildtype=debug"
+          - '-Duse_freestnd_hdrs=enabled'
+          - "-Dbuildtype=debugoptimized"
+          - '--wrap-mode=nofallback'
           - '-Dlinux_kernel_headers=@SYSROOT_DIR@/usr/include'
           - "@THIS_SOURCE_DIR@"
     build:
@@ -378,115 +470,32 @@ packages:
       - tool: cross-gcc
         stage_dependencies: ["compiler"]
       - tool: cross-binutils
+      - tool: cross-pkg-config
     implict_package: true
     pkgs_required:
       - mlibc-headers
+      - freestnd-c-hdrs
+      - freestnd-cxx-hdrs
+      - frigg
+      - libsmarter
     configure:
       - args:
           - "meson"
           - "--cross-file"
           - "@SOURCE_ROOT@/scripts/meson-x86_64-linux-mlibc.cross-file"
-          - "--prefix=/usr"
-          - "--libdir=lib"
-          - "-Dmlibc_no_headers=true"
-          - "-Ddisable_iconv_option=true"
-          - "-Ddisable_intl_option=true"
-          - "-Ddisable_crypt_option=true"
-          - "-Dbuildtype=debug"
+          - '--prefix=/usr'
+          - '--libdir=lib'
+          - '-Dno_headers=true'
+          - '-Duse_freestnd_hdrs=enabled'
+          - '--buildtype=debugoptimized'
+          - '--wrap-mode=nofallback'
           - '-Dlinux_kernel_headers=@SYSROOT_DIR@/usr/include'
           - "@THIS_SOURCE_DIR@"
+        environ:
+          LDFLAGS: "@SYSROOT_DIR@/usr/lib/libgcc.a"
     build:
+      - args: ["wget", "-O", "@SYSROOT_DIR@/usr/lib/libgcc.a", "https://github.com/osdev0/libgcc-binaries/releases/download/2025-12-08/libgcc-@OPTION:arch@.a"]
       - args: ["ninja"]
       - args: ["ninja", "install"]
         environ:
           DESTDIR: "@THIS_COLLECT_DIR@"
-
-tasks:
-  - name: version-check
-    args: ["@SOURCE_ROOT@/scripts/version-check.sh"]
-
-  - name: mount
-    args:
-      - sudo
-      - "@SOURCE_ROOT@/scripts/lfs.sh"
-      - "@BUILD_ROOT@"
-      - mount
-    containerless: true
-
-  - name: unmount
-    args:
-      - sudo
-      - "@SOURCE_ROOT@/scripts/lfs.sh"
-      - "@BUILD_ROOT@"
-      - unmount
-    containerless: true
-
-  - name: chroot
-    tasks_required:
-      - mount
-    args:
-      - sudo
-      - "@SOURCE_ROOT@/scripts/lfs.sh"
-      - "@BUILD_ROOT@"
-      - chroot
-    containerless: true
-
-  - name: mount-image
-    args:
-      - sudo
-      - '@SOURCE_ROOT@/scripts/mount-image.sh'
-      - '@BUILD_ROOT@'
-    containerless: true
-
-  - name: update-image
-    tasks_required:
-      - mount-image
-    args:
-      - sudo
-      - '@SOURCE_ROOT@/scripts/update-image.sh'
-      - '@BUILD_ROOT@'
-    containerless: true
-
-  - name: unmount-image
-    args:
-      - sudo
-      - '@SOURCE_ROOT@/scripts/unmount-image.sh'
-      - '@BUILD_ROOT@'
-    containerless: true
-
-  - name: make-image
-    tools_required:
-      - host-limine
-    args: |
-      sudo @SOURCE_ROOT@/scripts/make-image.sh @BUILD_ROOT@
-      sudo @BUILD_ROOT@/tools/host-limine/share/limine/limine-deploy @BUILD_ROOT@/image
-    containerless: true
-
-  - name: qemu
-    tasks_required:
-      - make-image
-    args:
-      - qemu-system-x86_64
-      - '-drive'
-      - 'format=raw,file=@BUILD_ROOT@/image'
-      - '-serial'
-      - 'stdio'
-      - '-machine'
-      - 'q35,accel=kvm:whpx:tcg'
-      - '-m'
-      - '2G'
-      - '-vga'
-      - 'virtio'
-      - '-device'
-      - 'qemu-xhci,id=xhci'
-      - '-device'
-      - 'usb-kbd,bus=xhci.0'
-      - '-device'
-      - 'usb-tablet,bus=xhci.0'
-      # - '-netdev'
-      # - 'user,id=net0'
-      # - '-device'
-      # - 'virtio-net,disable-modern=on,netdev=net0'
-      # - '-object'
-      # - 'filter-dump,id=fd1,netdev=net0,file=net0dump'
-    containerless: true

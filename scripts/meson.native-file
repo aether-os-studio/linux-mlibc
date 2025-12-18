@@ -1,2 +1,2 @@
 [binaries]
-pkgconfig = 'host-pkg-config'
+pkgconfig = 'pkg-config'
