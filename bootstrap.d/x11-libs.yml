@@ -179,6 +179,32 @@ packages:
     #       - args: ['gtk-query-immodules-3.0', '--update-cache']
     #       - args: ['glib-compile-schemas', '/usr/share/glib-2.0/schemas']
 
+  - name: pciaccess
+    source:
+      subdir: 'ports'
+      git: 'https://gitlab.freedesktop.org/xorg/lib/libpciaccess.git'
+      tag: 'libpciaccess-0.18.1'
+      version: '0.18.1'
+    tools_required:
+      - cross-toolchain
+    configure:
+      - args:
+        - 'meson'
+        - '--native-file'
+        - '@SOURCE_ROOT@/scripts/meson.native-file'
+        - '--cross-file'
+        - '@SOURCE_ROOT@/scripts/meson-@OPTION:arch-triple@.cross-file'
+        - '--prefix=/usr'
+        - '--libdir=lib'
+        - '--buildtype=debugoptimized'
+        - '-Dzlib=disabled'
+        - '@THIS_SOURCE_DIR@'
+    build:
+      - args: ['ninja']
+      - args: ['ninja', 'install']
+        environ:
+          DESTDIR: '@THIS_COLLECT_DIR@'
+
   - name: libdrm
     source:
       subdir: 'ports'
@@ -192,6 +218,8 @@ packages:
       #   - host-xorg-macros
     tools_required:
       - cross-toolchain
+    pkgs_required:
+      - pciaccess
     configure:
       - args:
         - 'meson'
@@ -210,6 +238,7 @@ packages:
         # We might want to build cairo with OpenGL support.
         # Doing so would introduce a circular dependency here.
         - '-Dcairo-tests=disabled'
+        - '-Dtests=false'
         - '@THIS_SOURCE_DIR@'
     build:
       - args: ['ninja']

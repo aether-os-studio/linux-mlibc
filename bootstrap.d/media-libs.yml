@@ -533,7 +533,7 @@ packages:
       - args: ['ninja', 'install']
         environ:
           DESTDIR: '@THIS_COLLECT_DIR@'
-
+  
   - name: libglvnd
     source:
       subdir: 'ports'
@@ -546,6 +546,7 @@ packages:
         triple: "@OPTION:arch-triple@"
     pkgs_required:
       - mlibc
+      - xorg-proto
       - libx11
       - libxext
     configure:
@@ -564,6 +565,8 @@ packages:
         - '-Dgles2=true'
         - '-Dtls=true'
         - '@THIS_SOURCE_DIR@'
+        environ:
+          PKG_CONFIG_PATH: "@SYSROOT_DIR@/usr/lib/pkgconfig:@SYSROOT_DIR@/usr/share/pkgconfig"
     build:
       - args: ['ninja']
       - args: ['ninja', 'install']
