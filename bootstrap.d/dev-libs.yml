@@ -2,8 +2,8 @@ sources:
   - name: glib
     subdir: ports
     git: 'https://gitlab.gnome.org/GNOME/glib.git'
-    tag: '2.70.3'
-    version: '2.70.3'
+    tag: '2.84.2'
+    version: '2.84.2'
 
   - name: gobject-introspection
     subdir: 'ports'
@@ -1242,8 +1242,8 @@ packages:
     source:
       subdir: 'ports'
       git: 'https://gitlab.freedesktop.org/wayland/wayland-protocols.git'
-      tag: '1.27'
-      version: '1.27'
+      tag: '1.33'
+      version: '1.33'
     tools_required:
       - cross-toolchain
       - wayland-scanner
@@ -1266,8 +1266,8 @@ packages:
     source:
       subdir: 'ports'
       git: 'https://gitlab.freedesktop.org/wayland/weston.git'
-      tag: '10.0.0'
-      version: '10.0.0'
+      tag: '14.0.1'
+      version: '14.0.1'
     tools_required:
       - cross-toolchain
       - wayland-scanner
@@ -1285,12 +1285,15 @@ packages:
       - wayland-protocols
       - dejavu
       - libxcursor
+      - seatd
+      - hwdata
       - xorg-server
       - pango
       - glib
       - libjpeg-turbo
       - libwebp
       - pam
+      - systemd
     configure:
       - args:
         - 'meson'
@@ -1303,16 +1306,15 @@ packages:
         - '--buildtype=debugoptimized'
         - '-Dbackend-x11=false'
         - '-Dsimple-clients=damage,im,egl,shm,touch'
-        - '-Dlauncher-logind=false'
         - '-Dbackend-drm-screencast-vaapi=false'
         - '-Dbackend-rdp=false'
-        - '-Dcolor-management-colord=false'
+        - '-Dbackend-vnc=false'
+        - '-Dbackend-pipewire=false'
         - '-Dcolor-management-lcms=false'
-        - '-Dsystemd=false'
+        - '-Dsystemd=true'
         - '-Dremoting=false'
         - '-Dpipewire=false'
-        - '-Dxwayland=true'
-        - '-Ddeprecated-weston-launch=true'
+        - '-Dtests=false'
         - '@THIS_SOURCE_DIR@'
         environ:
           PKG_CONFIG_SYSROOT_DIR: '@BUILD_ROOT@/system-root'

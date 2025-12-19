@@ -112,12 +112,9 @@ packages:
         - '--cross-file'
         - '@SOURCE_ROOT@/scripts/meson-@OPTION:arch-triple@.cross-file'
         - '--prefix=/usr'
-        - '-Dxorg=false'
-        - '-Dxephyr=false'
-        - '-Dxwayland=true'
-        - '-Dxnest=false'
-        - '-Ddmx=false'
         - '-Dxvfb=false'
+        - '-Dxorg=false'
+        - '-Dxwayland=true'
         - '-Dxkb_output_dir=/var/lib/xkb'
         - '-Dos_vendor="The mlibc LFS Project"'
         - '-Dvendor_name="The mlibc LFS Project"'
@@ -133,7 +130,10 @@ packages:
         - '-Dsystemd_logind=false'
         - '-Dsecure-rpc=false'
         - '@THIS_SOURCE_DIR@'
+        environ:
+          PKG_CONFIG_PATH: "@BUILD_ROOT@/system-root/usr/lib/pkgconfig:@BUILD_ROOT@/system-root/usr/share/pkgconfig/"
     build:
+      - args: 'sed -i s/-Werror=array-bounds//g @THIS_BUILD_DIR@/build.ninja'
       - args: ['ninja']
       - args: ['ninja', 'install']
         environ:

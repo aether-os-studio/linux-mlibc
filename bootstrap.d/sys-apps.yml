@@ -22,6 +22,12 @@ sources:
     regenerate:
       - args: ['autoreconf', '-f', '-i']
 
+  - name: hwdata
+    subdir: 'ports'
+    git: 'https://github.com/vcrhonek/hwdata.git'
+    tag: 'v0.391'
+    version: '0.391'
+
 tools:
   - name: cross-file
     from_source: file
@@ -331,6 +337,32 @@ packages:
       - args: ['make', 'install']
         environ:
           DESTDIR: '@THIS_COLLECT_DIR@'
+
+  - name: hwdata
+    metadata:
+      summary: Hardware identification and configuration data
+      description: The hwdata package contains current PCI and vendor id data.
+      spdx: GPL-2.0-or-later
+      website: 'https://github.com/vcrhonek/hwdata'
+      maintainer: "Dennis Bonke <dennis@managarm.org>"
+      categories: ['sys-apps']
+    from_source: hwdata
+    tools_required:
+      - cross-toolchain
+    revision: 2
+    configure:
+      - args: ['cp', '-r', '@THIS_SOURCE_DIR@/.', '@THIS_BUILD_DIR@']
+      - args:
+        - '@THIS_SOURCE_DIR@/configure'
+        - '--host=@OPTION:arch-triple@'
+        - '--prefix=/usr'
+        - '--disable-blacklist'
+    build:
+      - args: ['make', '-j@PARALLELISM@']
+      - args: ['make', 'install']
+        environ:
+          DESTDIR: '@THIS_COLLECT_DIR@'
+        quiet: true
 
   - name: iana-etc
     source:
