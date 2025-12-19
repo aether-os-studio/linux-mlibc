@@ -34,8 +34,8 @@ sources:
   - name: wayland
     subdir: 'ports'
     git: 'https://gitlab.freedesktop.org/wayland/wayland.git'
-    tag: '1.21.0'
-    version: '1.21.0'
+    tag: '1.24.0'
+    version: '1.24.0'
 
   - name: wayland-old
     subdir: 'ports'
@@ -72,7 +72,7 @@ tools:
   - name: cross-wayland-protocols
     source:
       subdir: 'ports'
-      git: 'https://github.com/wayland-project/wayland-protocols.git'
+      git: 'https://gitlab.freedesktop.org/wayland/wayland-protocols.git'
       tag: '1.27'
       version: '1.27'
     tools_required:
@@ -689,7 +689,7 @@ packages:
   - name: libinput
     source:
       subdir: 'ports'
-      git: 'https://github.com/wayland-project/libinput.git'
+      git: 'https://gitlab.freedesktop.org/wayland/libinput.git'
       tag: '1.21.0'
       version: '1.21.0'
     tools_required:
@@ -1150,7 +1150,7 @@ packages:
           - "--disable-static"
         environ:
           PKG_CONFIG_SYSROOT_DIR: "@BUILD_ROOT@/system-root"
-          PKG_CONFIG_LIBDIR: "@BUILD_ROOT@/system-root/usr/lib/pkgconfig:@BUILD_ROOT@/system-root/usr/share/pkgconfig"
+          PKG_CONFIG_LIBDIR: "@BUILD_ROOT@/system-root/usr/lib/pkgconfig"
     build:
       - args: ["make", "-j@PARALLELISM@"]
       - args: ["make", "DESTDIR=@THIS_COLLECT_DIR@", "install"]
@@ -1225,10 +1225,11 @@ packages:
         - '--buildtype=debugoptimized'
         - '-Ddtd_validation=false'
         - '-Ddocumentation=false'
-        - '-Dscanner=false'
+        - '-Dtests=false'
+        - '-Dscanner=true'
         - '@THIS_SOURCE_DIR@'
         environ:
-          PKG_CONFIG_SYSROOT_DIR: '@BUILD_ROOT@/system-root'
+          PKG_CONFIG_PATH: "@BUILD_ROOT@/system-root/usr/lib/pkgconfig"
     build:
       - args: ['ninja']
       - args: ['ninja', 'install']
@@ -1238,7 +1239,7 @@ packages:
   - name: wayland-protocols
     source:
       subdir: 'ports'
-      git: 'https://github.com/wayland-project/wayland-protocols.git'
+      git: 'https://gitlab.freedesktop.org/wayland/wayland-protocols.git'
       tag: '1.27'
       version: '1.27'
     tools_required:
@@ -1262,7 +1263,7 @@ packages:
   - name: weston
     source:
       subdir: 'ports'
-      git: 'https://github.com/wayland-project/weston.git'
+      git: 'https://gitlab.freedesktop.org/wayland/weston.git'
       tag: '10.0.0'
       version: '10.0.0'
     tools_required:

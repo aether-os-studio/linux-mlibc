@@ -1,2 +1,2 @@
 [binaries]
-pkg-config = 'pkg-config'
+pkg-config = 'x86_64-linux-gnu-pkg-config' # host pkg config
