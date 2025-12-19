@@ -488,6 +488,7 @@ packages:
           - '--libdir=lib'
           - '-Dno_headers=true'
           - '-Duse_freestnd_hdrs=enabled'
+          - '-Dlibgcc_dependency=false'
           - '--buildtype=debugoptimized'
           - '--wrap-mode=nofallback'
           - '-Dlinux_kernel_headers=@SYSROOT_DIR@/usr/include'
