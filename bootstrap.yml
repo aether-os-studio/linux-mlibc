@@ -135,9 +135,8 @@ sources:
     subdir: ports
     git: 'https://github.com/managarm/mlibc.git'
     branch: 'master'
-    commit: '8f5b932dcc36de2bf85b3e61a57052482205d242'
-    rolling_version: true
-    version: '0.0pl@ROLLING_ID@'
+    commit: '270681643724fdc9f187bf682c8cd7a4251057f0'
+    version: '0.0.0'
 
 declare_options:
   - name: arch

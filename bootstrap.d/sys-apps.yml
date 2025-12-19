@@ -818,6 +818,7 @@ packages:
         - '-Dlibidn=disabled'
         - '-Dlibidn2=disabled'
         - '-Dlibiptc=disabled'
+        - '-Dlog-trace=true'
         - '-Dlocaled=false'
         - '-Dlogind=true'
         - '-Dlz4=disabled'

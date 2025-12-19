@@ -903,6 +903,8 @@ packages:
         - '-Denable-xkbregistry=false'
         - '-Denable-docs=false'
         - '@THIS_SOURCE_DIR@'
+        environ:
+          PKG_CONFIG_PATH: "@BUILD_ROOT@/system-root/usr/lib/pkgconfig"
     build:
       - args: ['ninja']
       - args: ['ninja', 'install']

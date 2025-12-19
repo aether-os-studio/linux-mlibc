@@ -1,0 +1,39 @@
+From f13596bfa7a8256707530d8e12a72b27b35b089c Mon Sep 17 00:00:00 2001
+From: lihanrui2913 <lihanrui20091103@126.com>
+Date: Fri, 19 Dec 2025 23:05:57 +0800
+Subject: [PATCH] Add readlinkat support
+
+Signed-off-by: lihanrui2913 <lihanrui20091103@126.com>
+---
+ sysdeps/linux/generic/sysdeps.cpp | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/sysdeps/linux/generic/sysdeps.cpp b/sysdeps/linux/generic/sysdeps.cpp
+index a631f3d9..58bcd0ea 100644
+--- a/sysdeps/linux/generic/sysdeps.cpp
++++ b/sysdeps/linux/generic/sysdeps.cpp
+@@ -2141,14 +2141,18 @@ int sys_ftruncate(int fd, size_t size) {
+ 	return 0;
+ }
+ 
+-int sys_readlink(const char *path, void *buf, size_t bufsiz, ssize_t *len) {
+-	auto ret = do_syscall(SYS_readlinkat, AT_FDCWD, path, buf, bufsiz);
++int sys_readlinkat(int dirfd, const char *path, void *buffer, size_t max_size, ssize_t *length) {
++	auto ret = do_syscall(SYS_readlinkat, dirfd, path, buffer, max_size);
+ 	if (int e = sc_error(ret); e)
+ 		return e;
+-	*len = sc_int_result<ssize_t>(ret);
++	*length = sc_int_result<ssize_t>(ret);
+ 	return 0;
+ }
+ 
++int sys_readlink(const char *path, void *buf, size_t bufsiz, ssize_t *len) {
++	return sys_readlinkat(AT_FDCWD, path, buf, bufsiz, len);
++}
++
+ #if __MLIBC_BSD_OPTION
+ // getloadavg() adapted from musl
+ int sys_getloadavg(double *samples) {
+-- 
+2.43.0
+

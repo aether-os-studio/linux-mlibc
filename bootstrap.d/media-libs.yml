@@ -429,10 +429,8 @@ packages:
     pkgs_required:
       - mlibc
       - graphite2
-      - glib
       - zlib
       - freetype
-      - cairo
       - icu
     configure:
       - args:
@@ -445,15 +443,17 @@ packages:
         - '--libdir=lib'
         - '--buildtype=debugoptimized'
         - '-Dgraphite2=enabled'
-        - '-Dglib=enabled'
+        - '-Dglib=disabled'
         - '-Dgobject=disabled'
         - '-Dicu=enabled'
         - '-Dfreetype=enabled'
-        - '-Dcairo=enabled'
+        - '-Dcairo=disabled'
         - '-Dintrospection=disabled'
         - '-Ddocs=disabled'
         - '-Dtests=disabled' # Disabled due to a linking error
         - '@THIS_SOURCE_DIR@'
+        environ:
+          PKG_CONFIG_PATH: "@BUILD_ROOT@/system-root/usr/lib/pkgconfig"
     build:
       - args: ['ninja']
       - args: ['ninja', 'install']
@@ -876,7 +876,7 @@ packages:
         - '-Dllvm=enabled'
         - '@THIS_SOURCE_DIR@'
         environ:
-          PKG_CONFIG_PATH: "@BUILD_ROOT@/system-root/usr/lib/pkgconfig:@BUILD_ROOT@/system-root/usr/share/pkgconfig"
+          PKG_CONFIG_LIBDIR: '@BUILD_ROOT@/system-root/usr/lib/pkgconfig'
     build:
       - args: ['ninja']
       - args: ['ninja', 'install']
