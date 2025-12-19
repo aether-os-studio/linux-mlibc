@@ -268,9 +268,9 @@ tools:
         pkgs_required:
           - libxcrypt
         compile:
-          - args: ['make', '-j@PARALLELISM@', 'all-target-libsanitizer', 'all-target-libatomic', 'all-target-libssp', 'all-target-libquadmath']
+          - args: ['make', '-j@PARALLELISM@', 'all-target-libatomic', 'all-target-libssp', 'all-target-libquadmath']
         install:
-          - args: ['make', 'install-target-libsanitizer', 'install-target-libatomic', 'install-target-libssp', 'install-target-libquadmath']
+          - args: ['make', 'install-target-libatomic', 'install-target-libssp', 'install-target-libquadmath']
 
   - name: cross-toolchain
     source:

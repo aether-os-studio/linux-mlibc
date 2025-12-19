@@ -115,6 +115,8 @@ packages:
       version: '2.67'
     tools_required:
       - cross-toolchain
+    pkgs_required:
+      - pam
     configure:
       - args: ['cp', '-r', '@THIS_SOURCE_DIR@/.', '@THIS_BUILD_DIR@']
     build:
