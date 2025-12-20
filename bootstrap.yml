@@ -306,7 +306,8 @@ packages:
           ln -sfv usr/lib @THIS_COLLECT_DIR@/lib
           ln -sfv usr/lib64 @THIS_COLLECT_DIR@/lib64
           ln -sfv usr/sbin @THIS_COLLECT_DIR@/sbin
-          mkdir -pv @THIS_COLLECT_DIR@/{boot,home,mnt,opt,srv}
+          mkdir -pv @THIS_COLLECT_DIR@/{boot,mnt,opt,srv}
+          mkdir -pv @THIS_COLLECT_DIR@/home/aether
           mkdir -pv @THIS_COLLECT_DIR@/etc/{opt,sysconfig}
           mkdir -pv @THIS_COLLECT_DIR@/lib/firmware
           mkdir -pv @THIS_COLLECT_DIR@/media/{floppy,cdrom}

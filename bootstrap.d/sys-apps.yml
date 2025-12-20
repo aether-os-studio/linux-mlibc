@@ -164,7 +164,7 @@ packages:
         - '--disable-static'
         - '--enable-shared'
         - '--enable-verbose-mode'
-        - '--with-systemdsystemunitdir=no'
+        - '--with-systemdsystemunitdir=/usr/lib/systemd/system'
         - '--with-systemduserunitdir=no'
         - '--docdir=/usr/share/doc/dbus-1.12.20'
         - '--with-console-auth-dir=/run/console'
