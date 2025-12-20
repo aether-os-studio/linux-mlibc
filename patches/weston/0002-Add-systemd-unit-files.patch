@@ -35,7 +35,7 @@ index 0000000..a5d3989
 +StandardError=journal
 +
 +# add a ~/.config/weston.ini and weston will pick-it up
-+ExecStartPre=/usr/bin/wait-for-devices --want-graphics --want-keyboard --want-mouse
++ExecStartPre=
 +ExecStart=/usr/bin/weston --xwayland
 +# HACK: All of these should be set by a proper DM, but for now hardcode them in
 +Environment="XDG_RUNTIME_DIR=/run"
