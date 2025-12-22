@@ -77,7 +77,7 @@ index e2cd8b4..1f76beb 100644
  #if !HAVE_FCHMODAT2
  static inline int missing_fchmodat2(int dirfd, const char *path, mode_t mode, int flags) {
 -#  ifdef __NR_fchmodat2
-+#  if defined(__NR_fchmodat2) && !defined(__managarm__)
++#  if defined(__NR_fchmodat2) && !defined(__linux__)
          return syscall(__NR_fchmodat2, dirfd, path, mode, flags);
  #  else
          errno = ENOSYS;
@@ -279,7 +279,7 @@ index 6de67ab..c5bfc10 100644
  
  #include <errno.h>
  #include <sched.h>
-+#if !defined(__managarm__)
++#if !defined(__linux__)
  #include <sys/syscall.h>
 +#endif
  
@@ -307,7 +307,7 @@ index e6bff30..3fa8df3 100644
  
  #include <linux/reboot.h>
  #include <sys/reboot.h>
-+#if !defined(__managarm__)
++#if !defined(__linux__)
  #include <sys/syscall.h>
 +#endif
  
@@ -316,8 +316,8 @@ index e6bff30..3fa8df3 100644
   * same way, except it takes the additional argument. */
  
  static inline int raw_reboot(int cmd, const void *arg) {
-+#if defined(__managarm__)
-+        int helout = open("/dev/helout", O_RDWR);
++#if defined(__linux__)
++        int helout = open("/dev/console", O_RDWR);
 +        dprintf(helout, "systemd: reboot unsupported\n");
 +        close(helout);
 +
@@ -343,7 +343,7 @@ index 56df5cf..98d6485 100644
  
          (void) umask(context->umask);
  
-+#ifndef __managarm__
++#ifndef __linux__
 +// TODO: We don't implement kernel keyring, remove if / when we do.
          r = setup_keyring(context, params, uid, gid);
          if (r < 0) {
@@ -403,7 +403,7 @@ index 0e0b666..44d0112 100644
  #include <linux/bpf.h>
  #include <stdint.h>
  #include <stdio.h>
-+#if !defined(__managarm__)
++#if !defined(__linux__)
  #include <sys/syscall.h>
 +#endif
  
