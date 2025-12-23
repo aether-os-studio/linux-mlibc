@@ -1,19 +1,20 @@
-From 0cb13d153ec92fcfa79ede888092ad3234510cad Mon Sep 17 00:00:00 2001
+From 46c3c08efcd4288ce5ba63a017322deb22d0e266 Mon Sep 17 00:00:00 2001
 From: lihanrui2913 <lihanrui20091103@126.com>
-Date: Tue, 23 Dec 2025 17:51:15 +0800
+Date: Tue, 23 Dec 2025 20:20:33 +0800
 Subject: [PATCH] Add special changes
 
 Signed-off-by: lihanrui2913 <lihanrui20091103@126.com>
 ---
- libweston/backend-drm/drm.c | 3 ++-
- protocol/meson.build        | 2 +-
- 2 files changed, 3 insertions(+), 2 deletions(-)
+ libweston/backend-drm/drm.c |  4 ++--
+ libweston/launcher-util.c   | 16 ++--------------
+ protocol/meson.build        |  2 +-
+ 3 files changed, 5 insertions(+), 17 deletions(-)
 
 diff --git a/libweston/backend-drm/drm.c b/libweston/backend-drm/drm.c
-index 11a5c3d4..1e79f608 100644
+index 11a5c3d4..df3e1381 100644
 --- a/libweston/backend-drm/drm.c
 +++ b/libweston/backend-drm/drm.c
-@@ -4009,13 +4009,14 @@ drm_backend_create(struct weston_compositor *compositor,
+@@ -4009,13 +4009,13 @@ drm_backend_create(struct weston_compositor *compositor,
  			     &b->format) < 0)
  		goto err_compositor;
  
@@ -24,11 +25,43 @@ index 11a5c3d4..1e79f608 100644
  		weston_log("fatal: your system should either provide the "
  			   "logind D-Bus API, or use seatd.\n");
  		goto err_compositor;
- 	}
-+	*/
+-	}
++	}*/
  
  	b->udev = udev_new();
  	if (b->udev == NULL) {
+diff --git a/libweston/launcher-util.c b/libweston/launcher-util.c
+index c833537d..6e91d38d 100644
+--- a/libweston/launcher-util.c
++++ b/libweston/launcher-util.c
+@@ -69,7 +69,8 @@ WL_EXPORT int
+ weston_launcher_open(struct weston_launcher *launcher,
+ 		     const char *path, int flags)
+ {
+-	return launcher->iface->open(launcher, path, flags);
++	// return launcher->iface->open(launcher, path, flags);
++	return open(path, flags);
+ }
+ 
+ WL_EXPORT void
+@@ -104,17 +105,4 @@ weston_setup_vt_switch_bindings(struct weston_compositor *compositor)
+ 	int ret;
+ 	uint32_t key;
+ 	struct weston_launcher *launcher = compositor->launcher;
+-
+-	ret = launcher->iface->get_vt(launcher);
+-	if (ret < 0 && ret != -ENOSYS)
+-		return;
+-
+-	if (compositor->vt_switching == false)
+-		return;
+-
+-	for (key = KEY_F1; key < KEY_F9; key++)
+-		weston_compositor_add_key_binding(compositor, key,
+-						  MODIFIER_CTRL | MODIFIER_ALT,
+-						  switch_vt_binding,
+-						  compositor);
+ }
 diff --git a/protocol/meson.build b/protocol/meson.build
 index d1073541..cf0140de 100644
 --- a/protocol/meson.build
