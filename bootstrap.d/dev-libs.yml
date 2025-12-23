@@ -1262,6 +1262,39 @@ packages:
         environ:
           DESTDIR: '@THIS_COLLECT_DIR@'
 
+  - name: wait-for-devices
+    source:
+      subdir: 'ports'
+      git: 'https://github.com/aether-os-studio/wait-for-devices'
+      branch: 'main'
+      rolling_version: true
+      version: '0.0pl@ROLLING_ID@'
+    tools_required:
+      - cross-toolchain
+    pkgs_required:
+      - mlibc
+      - systemd
+    configure:
+      - args:
+        - 'meson'
+        - 'setup'
+        - '--native-file'
+        - '@SOURCE_ROOT@/scripts/meson.native-file'
+        - '--cross-file'
+        - '@SOURCE_ROOT@/scripts/meson-@OPTION:arch-triple@.cross-file'
+        - '--prefix=/usr'
+        - '--libdir=lib'
+        - '--buildtype=debugoptimized'
+        - '@THIS_SOURCE_DIR@'
+        environ:
+          PKG_CONFIG_SYSROOT_DIR: '@BUILD_ROOT@/system-root'
+          PKG_CONFIG_LIBDIR: '@BUILD_ROOT@/system-root/usr/lib/pkgconfig:@BUILD_ROOT@/system-root/usr/share/pkgconfig'
+    build:
+      - args: ['ninja']
+      - args: ['ninja', 'install']
+        environ:
+          DESTDIR: '@THIS_COLLECT_DIR@'
+
   - name: weston
     source:
       subdir: 'ports'
@@ -1295,6 +1328,7 @@ packages:
       - libwebp
       - pam
       - systemd
+      - wait-for-devices
     configure:
       - args:
         - 'meson'
@@ -1325,3 +1359,9 @@ packages:
       - args: ['ninja', 'install']
         environ:
           DESTDIR: '@THIS_COLLECT_DIR@'
+      - args: ['mkdir', '-pv', '@THIS_COLLECT_DIR@/usr/lib/systemd/system/sockets.target.wants']
+      - args: ['mkdir', '-pv', '@THIS_COLLECT_DIR@/usr/lib/systemd/system/graphical.target.wants']
+      - args: ['cp', '-v', '@THIS_SOURCE_DIR@/weston.socket', '@THIS_COLLECT_DIR@/usr/lib/systemd/system']
+      - args: ['cp', '-v', '@THIS_SOURCE_DIR@/weston.service', '@THIS_COLLECT_DIR@/usr/lib/systemd/system']
+      - args: ['ln', '-svn', '../weston.socket', '@THIS_COLLECT_DIR@/usr/lib/systemd/system/sockets.target.wants/']
+      - args: ['ln', '-svn', '../weston.service', '@THIS_COLLECT_DIR@/usr/lib/systemd/system/graphical.target.wants/']
