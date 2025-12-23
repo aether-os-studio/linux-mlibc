@@ -175,7 +175,7 @@ packages:
         - '--disable-libaudit'
         - '--disable-kqueue'
         - '--disable-launchd'
-        - '--disable-systemd'
+        - '--enable-systemd'
         - '--disable-tests'
     build:
       # Copy dbus-arch-deps.h into /usr/include/dbus-1.0/dbus?

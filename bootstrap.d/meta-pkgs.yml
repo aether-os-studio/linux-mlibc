@@ -1,0 +1,23 @@
+packages:
+  - name: weston-desktop
+    source:
+      subdir: ports
+      version: '1.0'
+    metadata:
+      summary: Meta-package to provide a useful GUI environment (Weston)
+      description: This meta-package provides a GUI environment based on the Weston compositor and various small X based utilities.
+      spdx: 'MIT'
+      website: 'https://managarm.org'
+      maintainer: "Dennis Bonke <dennis@managarm.org>"
+      categories: ['meta-pkgs']
+    pkgs_required:
+      - base-files
+      - bash
+      - coreutils
+      - tzdata
+      - dbus
+      - systemd
+      - weston
+    revision: 2
+    configure: []
+    build: []

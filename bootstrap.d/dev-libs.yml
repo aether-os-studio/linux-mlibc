@@ -1278,6 +1278,7 @@ packages:
     pkgs_required:
       - mlibc
       - cairo
+      - libdisplay-info
       - libinput
       - libxkbcommon
       - mesa
@@ -1324,9 +1325,3 @@ packages:
       - args: ['ninja', 'install']
         environ:
           DESTDIR: '@THIS_COLLECT_DIR@'
-      - args: ['mkdir', '-pv', '@THIS_COLLECT_DIR@/usr/lib/systemd/system/sockets.target.wants']
-      - args: ['mkdir', '-pv', '@THIS_COLLECT_DIR@/usr/lib/systemd/system/graphical.target.wants']
-      - args: ['cp', '-v', '@THIS_SOURCE_DIR@/weston.socket', '@THIS_COLLECT_DIR@/usr/lib/systemd/system']
-      - args: ['cp', '-v', '@THIS_SOURCE_DIR@/weston.service', '@THIS_COLLECT_DIR@/usr/lib/systemd/system']
-      - args: ['ln', '-svn', '../weston.socket', '@THIS_COLLECT_DIR@/usr/lib/systemd/system/sockets.target.wants/']
-      - args: ['ln', '-svn', '../weston.service', '@THIS_COLLECT_DIR@/usr/lib/systemd/system/graphical.target.wants/']

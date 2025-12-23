@@ -1,0 +1,45 @@
+From 0cb13d153ec92fcfa79ede888092ad3234510cad Mon Sep 17 00:00:00 2001
+From: lihanrui2913 <lihanrui20091103@126.com>
+Date: Tue, 23 Dec 2025 17:51:15 +0800
+Subject: [PATCH] Add special changes
+
+Signed-off-by: lihanrui2913 <lihanrui20091103@126.com>
+---
+ libweston/backend-drm/drm.c | 3 ++-
+ protocol/meson.build        | 2 +-
+ 2 files changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/libweston/backend-drm/drm.c b/libweston/backend-drm/drm.c
+index 11a5c3d4..1e79f608 100644
+--- a/libweston/backend-drm/drm.c
++++ b/libweston/backend-drm/drm.c
+@@ -4009,13 +4009,14 @@ drm_backend_create(struct weston_compositor *compositor,
+ 			     &b->format) < 0)
+ 		goto err_compositor;
+ 
+-	/* Check if we run drm-backend using a compatible launcher */
++	/* Check if we run drm-backend using a compatible launcher 
+ 	compositor->launcher = weston_launcher_connect(compositor, seat_id, true);
+ 	if (compositor->launcher == NULL) {
+ 		weston_log("fatal: your system should either provide the "
+ 			   "logind D-Bus API, or use seatd.\n");
+ 		goto err_compositor;
+ 	}
++	*/
+ 
+ 	b->udev = udev_new();
+ 	if (b->udev == NULL) {
+diff --git a/protocol/meson.build b/protocol/meson.build
+index d1073541..cf0140de 100644
+--- a/protocol/meson.build
++++ b/protocol/meson.build
+@@ -1,5 +1,5 @@
+ dep_scanner = dependency('wayland-scanner', native: true)
+-prog_scanner = find_program(dep_scanner.get_variable(pkgconfig: 'wayland_scanner'))
++prog_scanner = find_program('wayland-scanner', dirs: dep_scanner.get_variable(pkgconfig: 'wayland_scanner'))
+ 
+ dep_wp = dependency('wayland-protocols', version: '>= 1.33',
+ 	fallback: ['wayland-protocols', 'wayland_protocols'])
+-- 
+2.43.0
+

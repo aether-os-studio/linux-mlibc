@@ -506,6 +506,48 @@ packages:
         environ:
           DESTDIR: '@THIS_COLLECT_DIR@'
 
+  - name: libdisplay-info
+    labels: [aarch64, riscv64]
+    architecture: '@OPTION:arch@'
+    metadata:
+      summary: Simple framework for writing Vulkan layers
+      description: libdisplay-info is a simple framework for writing Vulkan layers.
+      spdx: 'MIT'
+      website: 'https://gitlab.freedesktop.org/emersion/libdisplay-info'
+      maintainer: "Dennis Bonke <dennis@managarm.org>"
+      categories: ['media-libs']
+    source:
+      subdir: 'ports'
+      git: 'https://gitlab.freedesktop.org/emersion/libdisplay-info.git'
+      tag: '0.2.0'
+      version: '0.2.0'
+    tools_required:
+      - cross-toolchain
+      - virtual: pkgconfig-for-target
+        triple: "@OPTION:arch-triple@"
+      - virtual: pkgconfig-for-host
+        program_name: host-pkg-config
+    pkgs_required:
+      - mlibc
+      - hwdata
+    revision: 3
+    configure:
+      - args:
+          - 'meson'
+          - 'setup'
+          - '--native-file'
+          - '@SOURCE_ROOT@/scripts/meson.native-file'
+          - '--cross-file'
+          - '@SOURCE_ROOT@/scripts/meson-@OPTION:arch-triple@.cross-file'
+          - '--prefix=/usr'
+          - '@THIS_SOURCE_DIR@'
+    build:
+      - args: ['ninja']
+      - args: ['ninja', 'install']
+        environ:
+          DESTDIR: '@THIS_COLLECT_DIR@'
+        quiet: true
+
   - name: libepoxy
     source:
       subdir: 'ports'
