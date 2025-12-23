@@ -26,5 +26,5 @@ uuidd:x:80:
 systemd-oom:x:81:
 wheel:x:97:
 users:x:999:
-managarm:x:1000:
-nogroup:x:65534
+aether:x:1000:
+nogroup:x:65534:
