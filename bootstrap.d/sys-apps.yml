@@ -477,12 +477,12 @@ packages:
       - args: ['make', '-j@PARALLELISM@']
       - args: ['make', 'DESTDIR=@THIS_COLLECT_DIR@', 'install']
       - args: ['mkdir', '-pv', '@THIS_COLLECT_DIR@/usr/sbin']
-      - args: ['ln', '-svn', 'kmod', '@THIS_COLLECT_DIR@/usr/sbin/depmod']
-      - args: ['ln', '-svn', 'kmod', '@THIS_COLLECT_DIR@/usr/sbin/insmod']
-      - args: ['ln', '-svn', 'kmod', '@THIS_COLLECT_DIR@/usr/sbin/modinfo']
-      - args: ['ln', '-svn', 'kmod', '@THIS_COLLECT_DIR@/usr/sbin/modprobe']
-      - args: ['ln', '-svn', 'kmod', '@THIS_COLLECT_DIR@/usr/sbin/rmmod']
-      - args: ['ln', '-svn', 'kmod', '@THIS_COLLECT_DIR@/usr/bin/lsmod']
+      - args: ['ln', '-svn', '/usr/bin/kmod', '@THIS_COLLECT_DIR@/usr/sbin/depmod']
+      - args: ['ln', '-svn', '/usr/bin/kmod', '@THIS_COLLECT_DIR@/usr/sbin/insmod']
+      - args: ['ln', '-svn', '/usr/bin/kmod', '@THIS_COLLECT_DIR@/usr/sbin/modinfo']
+      - args: ['ln', '-svn', '/usr/bin/kmod', '@THIS_COLLECT_DIR@/usr/sbin/modprobe']
+      - args: ['ln', '-svn', '/usr/bin/kmod', '@THIS_COLLECT_DIR@/usr/sbin/rmmod']
+      - args: ['ln', '-svn', '/usr/bin/kmod', '@THIS_COLLECT_DIR@/usr/bin/lsmod']
 
   - name: less
     source:
@@ -648,13 +648,13 @@ packages:
     tools_required:
       - cross-toolchain
     pkgs_required:
-      # - util-linux-libs
-      # - eudev
+      - mlibc
       - readline
       - ncurses
       - zlib
       - libiconv
       - file
+      - libxcrypt
     configure:
       - args:
         - '@THIS_SOURCE_DIR@/configure'
@@ -664,67 +664,112 @@ packages:
         - '--libdir=/usr/lib'
         - '--bindir=/usr/bin'
         - '--sbindir=/usr/sbin'
-        - '--docdir=/usr/share/doc/util-linux-2.36.2'
         - '--without-udev'
         - '--disable-nls'
         - '--disable-static'
         - '--without-python'
         - '--without-systemd'
         - '--without-systemdsystemunitdir'
-        - '--disable-pylibmount'
-        # - '--disable-agetty'
-        # - '--disable-partx'
-        # - '--disable-fallocate'
+        - '--disable-fdisks'
+        - '--disable-mount'
+        - '--disable-losetup'
+        - '--disable-zramctl'
+        - '--disable-fsck'
+        - '--disable-partx'
+        - '--disable-uuidd'
+        - '--disable-wipefs'
+        - '--disable-mountpoint'
+        - '--disable-fallocate'
         - '--disable-unshare'
-        # - '--disable-nsenter'
+        - '--disable-nsenter'
         - '--disable-setpriv'
+        - '--disable-hardlink'
         - '--disable-eject'
-        # - '--disable-plymouth_support'
-        # - '--disable-fdformat'
+        - '--disable-agetty'
+        - '--disable-plymouth_support'
+        - '--disable-cramfs'
+        - '--disable-bfs'
+        - '--disable-minix'
+        - '--disable-fdformat'
         - '--disable-hwclock'
         - '--disable-hwclock-cmos'
         - '--disable-hwclock-gplv3'
-        # - '--disable-wdctl'
+        - '--disable-mkfs'
+        - '--disable-isosize'
+        - '--disable-lsblk'
+        - '--disable-lslogins'
+        - '--disable-wdctl'
+        - '--disable-swaplabel'
+        - '--disable-mkswap'
+        - '--disable-cal'
         - '--disable-logger'
-        # - '--disable-switch_root'
-        # - '--disable-pivot_root'
-        # - '--disable-chmem'
+        - '--disable-look'
+        - '--disable-mcookie'
+        - '--disable-namei'
+        - '--disable-getopt'
+        - '--disable-blockdev'
+        - '--disable-lslocks'
+        - '--disable-switch_root'
+        - '--disable-pivot_root'
+        - '--disable-flock'
+        - '--disable-lsmem'
+        - '--disable-chmem'
+        - '--disable-ipcmk'
         - '--disable-ipcrm'
         - '--disable-ipcs'
-        # - '--disable-irqtop'
+        - '--disable-irqtop'
+        - '--disable-lsirq'
+        - '--disable-choom'
+        - '--disable-renice'
         - '--disable-rfkill'
-        # - '--disable-utmpdump'
-        # - '--disable-raw'
+        - '--disable-setsid'
+        - '--disable-ctrlaltdel'
+        - '--disable-script'
+        - '--disable-scriptreplay'
+        - '--disable-scriptlive'
+        - '--disable-col'
+        - '--disable-colcrt'
+        - '--disable-colrm'
+        - '--disable-column'
+        - '--disable-hexdump'
+        - '--disable-rev'
+        - '--disable-kill'
+        - '--disable-last'
+        - '--disable-utmpdump'
+        - '--disable-mesg'
+        - '--disable-raw'
+        - '--disable-rename'
         - '--disable-chfn-chsh'
         - '--disable-login'
         - '--disable-nologin'
         - '--disable-sulogin'
         - '--disable-su'
         - '--disable-runuser'
+        - '--disable-ul'
+        - '--disable-more'
         - '--disable-setterm'
         - '--disable-schedutils'
-        # - '--disable-pg-bell'
-        # - '--disable-fstrim'
-        # - '--disable-swapon'
+        - '--disable-pg-bell'
+        - '--disable-fstrim'
+        - '--disable-swapon'
         - '--disable-lscpu'
-        # - '--disable-chcpu'
-        # - '--disable-blockdev'
-        # - '--disable-prlimit'
+        - '--disable-chcpu'
+        - '--disable-blockdev'
+        - '--disable-prlimit'
         - '--disable-lsipc'
-        # - '--disable-lsns'
-        # - '--disable-readprofile'
-        # - '--disable-dmesg'
-        # - '--disable-fincore'
-        # - '--disable-fsfreeze'
-        # - '--disable-blkdiscard'
-        # - '--disable-blkzone'
+        - '--disable-lsns'
+        - '--disable-readprofile'
+        - '--disable-dmesg'
+        - '--disable-fincore'
+        - '--disable-fsfreeze'
+        - '--disable-blkdiscard'
+        - '--disable-blkzone'
         - '--disable-ldattach'
-        # - '--disable-rtcwake'
+        - '--disable-rtcwake'
         - '--disable-setarch'
-        # - '--disable-tunelp'
-        - '--disable-lslogins'
-        - '--disable-fdisks'
-        - '--enable-write'
+        - '--disable-tunelp'
+        - '--disable-wall'
+        - '--disable-bash-completion'
         - '--without-cap-ng'
         - '--without-btrfs'
         - '--without-selinux'
@@ -736,6 +781,11 @@ packages:
       - args: ['make', 'install']
         environ:
           DESTDIR: '@THIS_COLLECT_DIR@'
+      - args: ['rm', '-r', '@THIS_COLLECT_DIR@/usr/bin']
+      - args: ['rm', '-r', '@THIS_COLLECT_DIR@/usr/sbin']
+      - args: ['rm', '-r', '@THIS_COLLECT_DIR@/usr/share/bash-completion']
+      - args: ['rm', '-r', '@THIS_COLLECT_DIR@/usr/share/man/man1']
+      - args: ['rm', '-r', '@THIS_COLLECT_DIR@/usr/share/man/man8']
 
   - name: which
     source:
@@ -806,7 +856,9 @@ packages:
       - openssl
       - util-linux
       - mlibc
+      - acl
       - pam
+      - kmod
     revision: 12
     configure:
       - args:
@@ -817,7 +869,7 @@ packages:
         - '--cross-file'
         - '@SOURCE_ROOT@/scripts/meson-@OPTION:arch-triple@.cross-file'
         - '--prefix=/usr'
-        - '--buildtype=debugoptimized'
+        - '--buildtype=debug'
         - '-Dadm-group=false'
         - '-Danalyze=false'
         - '-Dapparmor=disabled'
@@ -842,6 +894,7 @@ packages:
         - '-Didn=false'
         - '-Dima=false'
         - '-Dinitrd=false'
+        - '-Dkmod=enabled'
         - '-Dfirstboot=false'
         - '-Dldconfig=false'
         - '-Dlibcryptsetup=disabled'

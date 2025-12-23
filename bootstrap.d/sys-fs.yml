@@ -13,7 +13,6 @@ packages:
       - cross-toolchain
     pkgs_required:
       - util-linux
-      - kmod
     configure:
       - args:
         - '@THIS_SOURCE_DIR@/configure'
@@ -24,6 +23,7 @@ packages:
         - '--disable-static'
         - '--with-sysroot=@SYSROOT_DIR@' # Set libtool's lt_sysroot.
         - '--disable-selinux'
+        - '--disable-kmod'
         - '--disable-mtd-probe'
         - '--disable-rule-generator'
         - '--enable-introspection=no'
